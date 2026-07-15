@@ -19,6 +19,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 CHANNEL_URL = os.getenv("CHANNEL_URL")
 RENDER_URL = os.getenv("RENDER_URL")
+SECRET_LINK = os.getenv("SECRET_LINK", "https://твоя-секретная-ссылка.com")
 
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
 WEBHOOK_URL = f"{RENDER_URL}{WEBHOOK_PATH}"
@@ -45,30 +46,51 @@ def get_subscribe_keyboard():
     ]
     return types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
+def get_secret_link_keyboard():
+    buttons = [
+        [types.InlineKeyboardButton(text="🎁 Получить секретный доступ", url=SECRET_LINK)]
+    ]
+    return types.InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 # Хэндлер команды /start
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
     if await is_subscribed(user_id):
-        await message.answer("Спасибо за подписку! Тебе доступен весь скрытый функционал. Пользуйся! 🎉")
+        await message.answer(
+            "Спасибо за подписку! Твоя секретная ссылка готова. Нажимай на кнопку ниже 👇",
+            reply_markup=get_secret_link_keyboard()
+        )
     else:
         await message.answer(
-            "Привет! Чтобы получить доступ к боту, пожалуйста, подпишись на наш канал.",
+            "Привет! Чтобы получить секретную ссылку, пожалуйста, подпишись на наш канал.",
             reply_markup=get_subscribe_keyboard()
         )
+
 
 # Обработка кнопки "Я подписался!"
 @dp.callback_query(lambda c: c.data == "check_subscription")
 async def process_check_subscription(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
     if await is_subscribed(user_id):
-        await callback_query.answer("Подписка подтверждена!", show_alert=True)
+        # Показываем всплывающее уведомление в Telegram
+        await callback_query.answer("Подписка подтверждена! 🎉", show_alert=True)
+
+        # Отправляем сообщение с секретной ссылкой
         await bot.send_message(
             chat_id=user_id,
-            text="Ура! Доступ открыт. Вот твой дополнительный функционал... 🚀"
+            text="Ура! Доступ открыт. Держи свою ссылку 👇",
+            reply_markup=get_secret_link_keyboard()
         )
-        await bot.delete_message(chat_id=user_id, message_id=callback_query.message.message_id)
+
+        # Удаляем старое сообщение с кнопкой проверки, чтобы не захламлять чат
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=callback_query.message.message_id)
+        except Exception:
+            pass
     else:
+        # Если всё еще не подписан
         await callback_query.answer("Вы всё еще не подписались на канал 😕", show_alert=True)
 
 # Жизненный цикл FastAPI для управления вебхуком
