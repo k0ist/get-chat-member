@@ -1,8 +1,4 @@
-# Default ignored files
 /shelf/
 /workspace.xml
-<<<<<<< HEAD
 .env
-=======
-.env
->>>>>>> 6a10c88436a65350bb28f63cd01ebdd250773a40
+keys.env
